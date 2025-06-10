@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ias-apps
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - service: identity-operations
+          - service: encryption-key-storer
+  template:
+    metadata:
+      name: "iop-{{service}}-apps"
+    spec:
+      destination:
+        namespace: "{{service}}"
+        server: "https://kubernetes.default.svc"
+      source:
+        path: .k8s/charts/core/{{service}}
+        repoURL: "https://github.com/facephi/identity-operations-processor-gitops"
+        targetRevision: main
+        helm:
+          releaseName: "{{service}}"
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - values.yaml
+            - values-pro-mec1-blue.yaml
+      project: default
+      syncPolicy:
+        automated: {}
+        syncOptions:
+          - ApplyOutOfSyncOnly=true
+          - CreateNamespace=true

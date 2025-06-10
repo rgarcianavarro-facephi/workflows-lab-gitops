@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    version: {{ .Values.encryptionKeyStorer.tag }}
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.hpa.minReplicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      serviceAccountName: "{{ .Release.Name }}-service-account"
+      containers:
+        - name: {{ .Release.Name }}
+          image: {{ .Values.encryptionKeyStorer.repository }}:{{ .Values.encryptionKeyStorer.tag }}
+          imagePullPolicy: {{ .Values.encryptionKeyStorer.pullPolicy }}
+          ports:
+          {{- range .Values.encryptionKeyStorer.ports }}
+            - name: {{ .name }}
+              protocol: {{ .protocol }}
+              containerPort: {{ .port }}
+          {{- end }}
+          env:
+            {{- range .Values.externalSecrets.secrets }}
+            - name: {{ .envVarName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}
+                  key: {{ .k8sSecretKey }}
+            {{- end }}
+            {{- range .Values.encryptionKeyStorer.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          resources:
+            limits:
+              cpu: {{ .Values.encryptionKeyStorer.resources.limits.cpu }}
+              memory: {{ .Values.encryptionKeyStorer.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.encryptionKeyStorer.resources.requests.cpu }}
+              memory: {{ .Values.encryptionKeyStorer.resources.requests.memory }}
+        {{- if .Values.encryptionKeyStorer.livenessProbe }}
+          livenessProbe: {{ .Values.encryptionKeyStorer.livenessProbe | toYaml | nindent 12 }}
+        {{- end }}
+        {{- if .Values.encryptionKeyStorer.readinessProbe }}
+          readinessProbe: {{ .Values.encryptionKeyStorer.readinessProbe | toYaml | nindent 12 }}
+        {{- end }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      dnsPolicy: ClusterFirst
+      # nodeSelector:
+      #   facephi.aws/nodepool: {{ .Release.Name }}
+      # topologySpreadConstraints:
+      #   - maxSkew: 1
+      #     topologyKey: topology.kubernetes.io/zone
+      #     whenUnsatisfiable: ScheduleAnyway
+      #     labelSelector:
+      #       matchLabels:
+      #         version: {{ .Values.encryptionKeyStorer.tag }}
+      #         app: {{ .Release.Name }}
+    {{- if .Values.securityContext }}
+      securityContext: {{ .Values.securityContext | toYaml | nindent 8 }}
+    {{- end }}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

@@ -1,0 +1,263 @@
+cluster:
+  name: saas-pro-mec1-idv-blue
+
+host: iop.me.idv-suite.com
+
+externalDns:
+  provider: cloudflare
+  type: public
+  # awsWeight: 100
+  # ttl: 300
+
+karpenter:
+  region: me-central-1
+  requirements:
+    instanceFamilies:
+      - c5
+    instanceCpus:
+      - "4"
+
+dispatcher-image-tag: &dispatcher-tag 1.0.0-c5590ab
+consumer-image-tag: &consumer-tag 1.0.0-c5590ab
+
+dispatcher:
+  repository: 289322136510.dkr.ecr.me-central-1.amazonaws.com/identity-operations-processor/core/dispatcher
+  tag: *dispatcher-tag
+  pullPolicy: IfNotPresent
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: http
+  env:
+    ###>>> General ENV Variables
+    - name: APP_SERVICE_NAME
+      value: identity-operations-processor-dispatcher
+    - name: APP_ENV
+      value: production
+    - name: APP_VERSION
+      value: *dispatcher-tag
+    - name: LOG_LEVEL
+      value: debug
+    - name: JSON_SCHEMA_BASE_PATH
+      value: ./schemas
+    - name: TZ
+      value: UTC
+    ###<<< General ENV Variables
+
+    ###>>> HTTP Server
+    - name: HTTP_HOST
+      value: 0.0.0.0
+    - name: HTTP_PORT
+      value: "8080"
+    - name: HTTP_READ_TIMEOUT
+      value: "30"
+    - name: HTTP_WRITE_TIMEOUT
+      value: "30"
+    ###<<< HTTP Server
+
+    ###>>> Identity Operations Processor PostgresSQL credentials
+    - name: IOP_POSTGRES_HOST
+      value: saas-pro-mec1-ip-blue-identity-platform-1.c5oiqq0mowdn.me-central-1.rds.amazonaws.com
+    - name: IOP_POSTGRES_HOST_READER
+      value: saas-pro-mec1-ip-blue-identity-platform-2.c5oiqq0mowdn.me-central-1.rds.amazonaws.com
+    - name: IOP_POSTGRES_USER
+      value: saas_pro_mec1_identity_operations_rw_role
+    - name: IOP_POSTGRES_PORT
+      value: "5432"
+    - name: IOP_POSTGRES_DATABASE
+      value: identity_operations_processor
+    - name: IOP_POSTGRES_SCHEMA
+      value: identity_operations
+    - name: IOP_POSTGRES_SSL_MODE
+      value: disable
+    - name: MIGRATIONS_PATH
+      value: ./migrations
+    - name: MIGRATIONS_TABLE_NAME
+      value: migrations
+    ###<<< Identity Operations Processor PostgresSQL credentials
+
+    ###>>> Identity Platform V3 PostgresSQL credentials
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_HOST
+      value: saas-pro-mec1-ip-blue-identity-platform-1.c5oiqq0mowdn.me-central-1.rds.amazonaws.com
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_USER
+      value: postgres
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_PORT
+      value: "5432"
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_DATABASE
+      value: postgres
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_SCHEMA
+      value: identity_platform
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_SSL_MODE
+      value: disable
+    ###<<< Identity Platform V3 PostgresSQL credentials
+
+    ###>>> NATS
+    - name: NATS_HOSTS
+      value: nats://nats.nats.svc.cluster.local:4222
+    ###<<< NATS
+
+    ###>>> REDIS
+    - name: REDIS_HOSTS
+      value: redis-master.redis.svc.cluster.local:6379
+    ###<<< REDIS
+
+    ###>>> OTEL
+    - name: OTEL_GRPC_HOST
+      value: k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local
+    - name: OTEL_GRPC_PORT
+      value: "4317"
+    ###<<< OTEL
+
+    ###>>> Dynamic parameters
+    - name: DYNAMIC_PARAMETERS_FILE_PATH
+      value: ./dynamic-parameters.yaml
+    ###<<< Dynamic parameters
+
+    ###>>> Encryption Key Storer
+    - name: ENCRYPTION_KEY_STORER_GRPC_SERVER_ADDR
+      value: encryption-key-storer.encryption-key-storer.svc.cluster.local:8086
+    ###<<< Encryption Key Storer
+
+    ###>>> AWS ENV Variables
+    - name: OPERATIONS_BUCKET_NAME
+      value: saas-pro-mec1-iop-blue-operations-assets
+    - name: SQS_BASE_URL
+      value: https://sqs.me-central-1.amazonaws.com/289322136510/
+    - name: ASYNC_COMMANDS_SQS_QUEUE_NAME
+      value: saas-pro-mec1-iop-blue-async-commands
+    - name: TENANT_EVENTS_SQS_QUEUE_NAME
+      value: saas-pro-mec1-iop-blue-tenant-events
+    ###<<< AWS ENV Variables
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  livenessProbe:
+    httpGet:
+      path: /system/healthcheck
+      port: 8080
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /system/healthcheck
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+consumer:
+  repository: 289322136510.dkr.ecr.me-central-1.amazonaws.com/identity-operations-processor/core/consumer
+  tag: *consumer-tag
+  pullPolicy: IfNotPresent
+  env:
+    ###>>> General ENV Variables
+    - name: APP_SERVICE_NAME
+      value: identity-operations-processor-consumer
+    - name: APP_ENV
+      value: production
+    - name: APP_VERSION
+      value: *consumer-tag
+    - name: LOG_LEVEL
+      value: debug
+    - name: JSON_SCHEMA_BASE_PATH
+      value: ./schemas
+    - name: TZ
+      value: UTC
+    ###<<< General ENV Variables
+
+    ###>>> Identity Operations Processor PostgresSQL credentials
+    - name: IOP_POSTGRES_HOST
+      value: saas-pro-mec1-ip-blue-identity-platform-1.c5oiqq0mowdn.me-central-1.rds.amazonaws.com
+    - name: IOP_POSTGRES_HOST_READER
+      value: saas-pro-mec1-ip-blue-identity-platform-2.c5oiqq0mowdn.me-central-1.rds.amazonaws.com
+    - name: IOP_POSTGRES_USER
+      value: saas_pro_mec1_identity_operations_rw_role
+    - name: IOP_POSTGRES_PORT
+      value: "5432"
+    - name: IOP_POSTGRES_DATABASE
+      value: identity_operations_processor
+    - name: IOP_POSTGRES_SCHEMA
+      value: identity_operations
+    - name: IOP_POSTGRES_SSL_MODE
+      value: disable
+    - name: MIGRATIONS_PATH
+      value: ./migrations
+    - name: MIGRATIONS_TABLE_NAME
+      value: migrations
+    ###<<< Identity Operations Processor PostgresSQL credentials
+
+    ###>>> Identity Platform V3 PostgresSQL credentials
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_HOST
+      value: saas-pro-mec1-ip-blue-identity-platform-1.c5oiqq0mowdn.me-central-1.rds.amazonaws.com
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_USER
+      value: postgres
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_PORT
+      value: "5432"
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_DATABASE
+      value: postgres
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_SCHEMA
+      value: identity_platform
+    - name: IDENTITY_PLATFORM_V3_POSTGRES_SSL_MODE
+      value: disable
+    ###<<< Identity Platform V3 PostgresSQL credentials
+
+    ###>>> NATS
+    - name: NATS_HOSTS
+      value: nats://nats.nats.svc.cluster.local:4222
+    ###<<< NATS
+
+    ###>>> REDIS
+    - name: REDIS_HOSTS
+      value: redis-master.redis.svc.cluster.local:6379
+    ###<<< REDIS
+
+    ###>>> OTEL
+    - name: OTEL_GRPC_HOST
+      value: k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local
+    - name: OTEL_GRPC_PORT
+      value: "4317"
+    ###<<< OTEL
+
+    ###>>> Dynamic parameters
+    - name: DYNAMIC_PARAMETERS_FILE_PATH
+      value: ./dynamic-parameters.yaml
+    ###<<< Dynamic parameters
+
+    ###>>> Encryption Key Storer
+    - name: ENCRYPTION_KEY_STORER_GRPC_SERVER_ADDR
+      value: encryption-key-storer.encryption-key-storer.svc.cluster.local:8086
+    ###<<< Encryption Key Storer
+
+    ###>>> AWS Generic Related
+    - name: OPERATIONS_BUCKET_NAME
+      value: saas-pro-mec1-iop-blue-operations-assets
+    - name: SQS_BASE_URL
+      value: https://sqs.me-central-1.amazonaws.com/289322136510/
+    - name: ASYNC_COMMANDS_SQS_QUEUE_NAME
+      value: saas-pro-mec1-iop-blue-async-commands
+    - name: TENANT_EVENTS_SQS_QUEUE_NAME
+      value: saas-pro-mec1-iop-blue-tenant-events
+    ###<<< AWS Generic Related
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  livenessProbe:
+    httpGet:
+      path: /system/healthcheck
+      port: 8080
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /system/healthcheck
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10

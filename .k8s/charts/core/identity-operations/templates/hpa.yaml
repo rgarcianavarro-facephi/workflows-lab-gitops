@@ -1,0 +1,49 @@
+{{- range .Values.hpa.services }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: "{{ $.Release.Name }}-{{ . }}"
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ $.Release.Name }}
+    service: {{ . }}
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: "{{ $.Release.Name }}-{{ . }}"
+    apiVersion: apps/v1
+  minReplicas: {{ $.Values.hpa.minReplicas }}
+  maxReplicas: {{ $.Values.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $.Values.hpa.cpuAverageUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $.Values.hpa.memoryAverageUtilization }}
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 100
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      selectPolicy: Max
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+---
+{{- end }}

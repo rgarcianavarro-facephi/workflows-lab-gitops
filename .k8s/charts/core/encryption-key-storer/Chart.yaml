@@ -1,0 +1,4 @@
+apiVersion: v1
+name: encryption key storer
+version: 0.0.1
+description: Identity Operation Processor Encryption Key Storer service Helm Chart

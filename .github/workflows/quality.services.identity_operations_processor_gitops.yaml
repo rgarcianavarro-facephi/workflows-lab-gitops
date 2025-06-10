@@ -1,0 +1,49 @@
+name: Quality Checks ✅
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}  # Ensure that only one instance of this workflow is running per Pull Request
+  cancel-in-progress: true  # Cancel any previous runs of this workflow
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  conventional_commits_validation:
+    name: Conventional Commit Validation ✅
+    runs-on: ubuntu-latest
+    env:
+      # Enable colored output in GitHub Actions
+      FORCE_COLOR: 3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history to lint all commits in the PR
+          # A depth of 0 is safest, but for very large repos, you might consider a larger number
+          # like fetch-depth: 100 if your PRs typically don't have more than 100 commits.
+          fetch-depth: 0
+
+      - name: Validate Conventional Commits with CommitMe
+        uses: dev-build-deploy/commit-me@v1 # https://github.com/dev-build-deploy/commit-me/blob/main/docs/github-action.md
+        with:
+          update-labels: true # Update labels on the PR based on commit messages
+          token: ${{ secrets.GITHUB_TOKEN }} # Use the GitHub token for authentication
+          include-commits: true # Do not include commits from the base branch
+          types: |
+            feat
+            fix
+            build
+            chore
+            ci
+            docs
+            style
+            refactor
+            perf
+            test
+            revert

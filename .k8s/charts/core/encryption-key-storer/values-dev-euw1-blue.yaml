@@ -1,0 +1,82 @@
+karpenter:
+  region: eu-west-1
+
+encryptionKeyStorer:
+  repository: 314146327420.dkr.ecr.eu-west-1.amazonaws.com/identity-operations-processor/core/encryption-key-storer
+  tag: &image-tag 1.0.0-c5590ab
+  pullPolicy: IfNotPresent
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: http
+    - name: grpc
+      protocol: TCP
+      port: 8086
+      targetPort: grpc
+  env:
+    ###>>> General ENV Variables
+    - name: APP_SERVICE_NAME
+      value: encryption-key-storer
+    - name: APP_ENV
+      value: development
+    - name: APP_VERSION
+      value: *image-tag
+    - name: LOG_LEVEL
+      value: debug
+    - name: JSON_SCHEMA_BASE_PATH
+      value: ./schemas
+    - name: TZ
+      value: UTC
+    ###<<< General ENV Variables
+
+    ###>>> HTTP Server
+    - name: HTTP_HOST
+      value: 0.0.0.0
+    - name: HTTP_PORT
+      value: "8080"
+    - name: HTTP_READ_TIMEOUT
+      value: "30"
+    - name: HTTP_WRITE_TIMEOUT
+      value: "30"
+    ###<<< HTTP Server
+
+    ###>>> GRPC Server
+    - name: GRPC_HOST
+      value: 0.0.0.0
+    - name: GRPC_PORT
+      value: "8086"
+    ###<<< GRPC Server
+
+    ###>>> OTEL
+    - name: OTEL_GRPC_HOST
+      value: k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local
+    - name: OTEL_GRPC_PORT
+      value: "4317"
+    ###<<< OTEL
+
+    ###>>> Single Encryption Key DynamoDB Table Setup
+    - name: DYNAMODB_SINGLE_ENCRYPTION_KEY_TABLE_NAME
+      value: "saas-dev-euw1-iop-blue-single-encryption-key"
+    - name: AWS_ENDPOINT_URL_DYNAMODB
+      value: https://dynamodb.eu-west-1.amazonaws.com
+    ###<<< Single Encryption Key DynamoDB Table Setup
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  livenessProbe:
+    httpGet:
+      path: /system/healthcheck
+      port: 8080
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /system/healthcheck
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10

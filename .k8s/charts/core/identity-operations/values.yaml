@@ -1,0 +1,49 @@
+
+securityContext: {}
+
+enabledCilium: false
+
+externalSecrets:
+  refreshInterval: 1h
+  secretStoreName: awssm-cluster-secret-store
+  secrets:
+    - envVarName: ENCRYPTION_KEY_STORER_GRPC_API_KEY
+      k8sSecretKey: grpcAuthApiKey
+      remoteKey: identity-operations-processor/core/identity-operations
+      remoteProperty: grpcAuthApiKey
+    - envVarName: IOP_POSTGRES_PASSWORD
+      k8sSecretKey: iopPostgresPassword
+      remoteKey: identity-operations-processor/core/identity-operations
+      remoteProperty: iopPostgresPassword
+    - envVarName: IDENTITY_PLATFORM_V3_POSTGRES_PASSWORD
+      k8sSecretKey: identityPlatformV3PostgresMasterPassword
+      remoteKey: identity-operations-processor/core/identity-operations
+      remoteProperty: identityPlatformV3PostgresMasterPassword
+    - envVarName: REDIS_PASSWORD
+      k8sSecretKey: redisPassword
+      remoteKey: identity-operations-processor/core/identity-operations
+      remoteProperty: redisPassword
+    - envVarName: DYNAMIC_PARAMETERS_API_KEYS
+      k8sSecretKey: dynamicParametersApiKeys
+      remoteKey: identity-operations-processor/core/identity-operations
+      remoteProperty: dynamicParametersApiKeys
+
+hpa:
+  services:
+    - dispatcher
+    - consumer
+  minReplicas: 1
+  maxReplicas: 5
+  cpuAverageUtilization: 120
+  memoryAverageUtilization: 120
+
+karpenter:
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 30s
+    expireAfter: 168h
+  requirements:
+    instanceFamilies:
+      - c6i
+    instanceCpus:
+      - "4"

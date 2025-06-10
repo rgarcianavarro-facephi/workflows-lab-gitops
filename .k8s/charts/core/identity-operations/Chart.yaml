@@ -1,0 +1,4 @@
+apiVersion: v1
+name: identity-operations
+version: 0.0.1
+description: Identity Operation Processor Helm Chart

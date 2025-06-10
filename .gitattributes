@@ -1,0 +1,40 @@
+# Ensure line endings are consistent across platforms
+* text=auto
+
+# Kubernetes manifests (YAML)
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Helm charts (YAML and related files)
+Chart.yaml text eol=lf
+values.yaml text eol=lf
+values-*.yaml text eol=lf
+templates/*.yaml text eol=lf
+templates/*.yml text eol=lf
+
+# Kustomize files (YAML)
+kustomization.yaml text eol=lf
+kustomization.yml text eol=lf
+base/*.yaml text eol=lf
+base/*.yml text eol=lf
+overlays/*/kustomization.yaml text eol=lf
+overlays/*/kustomization.yml text eol=lf
+overlays/*/*.yaml text eol=lf
+overlays/*/*.yml text eol=lf
+
+# Documentation (Markdown)
+*.md text eol=lf
+
+# Configuration files (INI, TOML, etc.)
+*.ini text eol=lf
+*.toml text eol=lf
+
+# Terraform files (HCL)
+*.tf text eol=lf
+*.tfvars text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Python scripts
+*.py text eol=lf

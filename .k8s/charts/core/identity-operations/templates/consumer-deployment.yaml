@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}-consumer"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    version: {{ .Values.consumer.tag }}
+    app: {{ .Release.Name }}
+    service: consumer
+spec:
+  replicas: {{ .Values.hpa.minReplicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      service: consumer
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        service: consumer
+    spec:
+      serviceAccountName: "{{ .Release.Name }}-service-account"
+      containers:
+        - name: "{{ .Release.Name }}-consumer"
+          image: {{ .Values.consumer.repository }}:{{ .Values.consumer.tag }}
+          imagePullPolicy: {{ .Values.consumer.pullPolicy }}
+          env:
+            {{- range .Values.externalSecrets.secrets }}
+            - name: {{ .envVarName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}
+                  key: {{ .k8sSecretKey }}
+            {{- end }}
+            {{- range .Values.consumer.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          resources:
+            limits:
+              cpu: {{ .Values.consumer.resources.limits.cpu }}
+              memory: {{ .Values.consumer.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.consumer.resources.requests.cpu }}
+              memory: {{ .Values.consumer.resources.requests.memory }}
+        {{- if .Values.consumer.livenessProbe }}
+          livenessProbe: {{ .Values.consumer.livenessProbe | toYaml | nindent 12 }}
+        {{- end }}
+        {{- if .Values.consumer.readinessProbe }}
+          readinessProbe: {{ .Values.consumer.readinessProbe | toYaml | nindent 12 }}
+        {{- end }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      dnsPolicy: ClusterFirst
+      # nodeSelector:
+      #   facephi.aws/nodepool: {{ .Release.Name }}
+      # topologySpreadConstraints:
+      #   - maxSkew: 1
+      #     topologyKey: topology.kubernetes.io/zone
+      #     whenUnsatisfiable: ScheduleAnyway
+      #     labelSelector:
+      #       matchLabels:
+      #         version: {{ .Values.consumer.tag }}
+      #         app: "{{ .Release.Name }}-consumer"
+    {{- if .Values.securityContext }}
+      securityContext: {{ .Values.securityContext | toYaml | nindent 8 }}
+    {{- end }}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

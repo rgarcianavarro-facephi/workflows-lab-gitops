@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}-dispatcher"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    version: {{ .Values.dispatcher.tag }}
+    app: {{ .Release.Name }}
+    service: dispatcher
+spec:
+  replicas: {{ .Values.hpa.minReplicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      service: dispatcher
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        service: dispatcher
+    spec:
+      serviceAccountName: "{{ .Release.Name }}-service-account"
+      containers:
+        - name: "{{ .Release.Name }}-dispatcher"
+          image: {{ .Values.dispatcher.repository }}:{{ .Values.dispatcher.tag }}
+          imagePullPolicy: {{ .Values.dispatcher.pullPolicy }}
+          ports:
+          {{- range .Values.dispatcher.ports }}
+            - name: {{ .name }}
+              protocol: {{ .protocol }}
+              containerPort: {{ .port }}
+          {{- end }}
+          env:
+            {{- range .Values.externalSecrets.secrets }}
+            - name: {{ .envVarName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}
+                  key: {{ .k8sSecretKey }}
+            {{- end }}
+            {{- range .Values.dispatcher.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          resources:
+            limits:
+              cpu: {{ .Values.dispatcher.resources.limits.cpu }}
+              memory: {{ .Values.dispatcher.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.dispatcher.resources.requests.cpu }}
+              memory: {{ .Values.dispatcher.resources.requests.memory }}
+        {{- if .Values.dispatcher.livenessProbe }}
+          livenessProbe: {{ .Values.dispatcher.livenessProbe | toYaml | nindent 12 }}
+        {{- end }}
+        {{- if .Values.dispatcher.readinessProbe }}
+          readinessProbe: {{ .Values.dispatcher.readinessProbe | toYaml | nindent 12 }}
+        {{- end }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      dnsPolicy: ClusterFirst
+      # nodeSelector:
+      #   facephi.aws/nodepool: {{ .Release.Name }}
+      # topologySpreadConstraints:
+      #   - maxSkew: 1
+      #     topologyKey: topology.kubernetes.io/zone
+      #     whenUnsatisfiable: ScheduleAnyway
+      #     labelSelector:
+      #       matchLabels:
+      #         app: "{{ .Release.Name }}-dispatcher"
+    {{- if .Values.securityContext }}
+      securityContext: {{ .Values.securityContext | toYaml | nindent 8 }}
+    {{- end }}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Release.Name }}-dispatcher"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    version: {{ .Values.dispatcher.tag }}
+    app: {{ .Release.Name }}
+    service: dispatcher
+spec:
+  ports:
+  {{- range .Values.dispatcher.ports }}
+    - name: {{ .name }}
+      protocol: {{ .protocol }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort }}
+  {{- end }}
+  selector:
+    app: {{ .Release.Name }}
+    service: dispatcher
+  type: ClusterIP
+  sessionAffinity: None
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  internalTrafficPolicy: Cluster
