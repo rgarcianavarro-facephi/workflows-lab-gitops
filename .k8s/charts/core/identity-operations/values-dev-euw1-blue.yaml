@@ -140,7 +140,7 @@ dispatcher:
     periodSeconds: 10
 consumer:
   repository: 314146327420.dkr.ecr.eu-west-1.amazonaws.com/identity-operations-processor/core/consumer
-  tag: v3.0.20
+  tag: v3.0.21
   pullPolicy: IfNotPresent
   env:
     ###>>> General ENV Variables
