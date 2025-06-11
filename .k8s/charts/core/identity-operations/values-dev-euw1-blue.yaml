@@ -1,20 +1,15 @@
 cluster:
   name: saas-dev-euw1-idv-blue
-
 host: iop.idv-suite-dev.com
-
 externalDns:
   provider: cloudflare
   type: public
   # awsWeight: 100
   # ttl: 300
-
 karpenter:
   region: eu-west-1
-
 dispatcher-image-tag: &dispatcher-tag 1.0.0-c5590ab
 consumer-image-tag: &consumer-tag 1.0.0-c5590ab
-
 dispatcher:
   repository: 314146327420.dkr.ecr.eu-west-1.amazonaws.com/identity-operations-processor/core/dispatcher
   tag: *dispatcher-tag
@@ -38,10 +33,10 @@ dispatcher:
       value: ./schemas
     - name: TZ
       value: UTC
-    ###<<< General ENV Variables
-
     ###>>> HTTP Server
     - name: HTTP_HOST
+      ###<<< General ENV Variables
+
       value: 0.0.0.0
     - name: HTTP_PORT
       value: "8080"
@@ -49,10 +44,10 @@ dispatcher:
       value: "30"
     - name: HTTP_WRITE_TIMEOUT
       value: "30"
-    ###<<< HTTP Server
-
     ###>>> Identity Operations Processor PostgresSQL credentials
     - name: IOP_POSTGRES_HOST
+      ###<<< HTTP Server
+
       value: saas-dev-euw1-ip-blue-identity-platform-1.c1g4us8m085b.eu-west-1.rds.amazonaws.com
     - name: IOP_POSTGRES_HOST_READER
       value: saas-dev-euw1-ip-blue-identity-platform-2.c1g4us8m085b.eu-west-1.rds.amazonaws.com
@@ -70,10 +65,10 @@ dispatcher:
       value: ./migrations
     - name: MIGRATIONS_TABLE_NAME
       value: migrations
-    ###<<< Identity Operations Processor PostgresSQL credentials
-
     ###>>> Identity Platform V3 PostgresSQL credentials
     - name: IDENTITY_PLATFORM_V3_POSTGRES_HOST
+      ###<<< Identity Operations Processor PostgresSQL credentials
+
       value: saas-dev-euw1-ip-blue-identity-platform-1.c1g4us8m085b.eu-west-1.rds.amazonaws.com
     - name: IDENTITY_PLATFORM_V3_POSTGRES_USER
       value: postgres
@@ -85,37 +80,37 @@ dispatcher:
       value: identity_platform
     - name: IDENTITY_PLATFORM_V3_POSTGRES_SSL_MODE
       value: disable
-    ###<<< Identity Platform V3 PostgresSQL credentials
-
     ###>>> NATS
     - name: NATS_HOSTS
-      value: nats://nats.nats.svc.cluster.local:4222
-    ###<<< NATS
+      ###<<< Identity Platform V3 PostgresSQL credentials
 
+      value: nats://nats.nats.svc.cluster.local:4222
     ###>>> REDIS
     - name: REDIS_HOSTS
-      value: redis-master.redis.svc.cluster.local:6379
-    ###<<< REDIS
+      ###<<< NATS
 
+      value: redis-master.redis.svc.cluster.local:6379
     ###>>> OTEL
     - name: OTEL_GRPC_HOST
+      ###<<< REDIS
+
       value: k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local
     - name: OTEL_GRPC_PORT
       value: "4317"
-    ###<<< OTEL
-
     ###>>> Dynamic parameters
     - name: DYNAMIC_PARAMETERS_FILE_PATH
-      value: ./dynamic-parameters.yaml
-    ###<<< Dynamic parameters
+      ###<<< OTEL
 
+      value: ./dynamic-parameters.yaml
     ###>>> Encryption Key Storer
     - name: ENCRYPTION_KEY_STORER_GRPC_SERVER_ADDR
-      value: encryption-key-storer.encryption-key-storer.svc.cluster.local:8086
-    ###<<< Encryption Key Storer
+      ###<<< Dynamic parameters
 
+      value: encryption-key-storer.encryption-key-storer.svc.cluster.local:8086
     ###>>> AWS ENV Variables
     - name: OPERATIONS_BUCKET_NAME
+      ###<<< Encryption Key Storer
+
       value: saas-dev-euw1-iop-blue-operations-assets
     - name: SQS_BASE_URL
       value: https://sqs.eu-west-1.amazonaws.com/314146327420/
@@ -123,7 +118,7 @@ dispatcher:
       value: saas-dev-euw1-iop-blue-async-commands
     - name: TENANT_EVENTS_SQS_QUEUE_NAME
       value: saas-dev-euw1-iop-blue-tenant-events
-    ###<<< AWS ENV Variables
+      ###<<< AWS ENV Variables
   resources:
     limits:
       cpu: 500m
@@ -143,10 +138,9 @@ dispatcher:
       port: 8080
     initialDelaySeconds: 5
     periodSeconds: 10
-
 consumer:
   repository: 314146327420.dkr.ecr.eu-west-1.amazonaws.com/identity-operations-processor/core/consumer
-  tag: *consumer-tag
+  tag: v3.0.20
   pullPolicy: IfNotPresent
   env:
     ###>>> General ENV Variables
@@ -162,10 +156,10 @@ consumer:
       value: ./schemas
     - name: TZ
       value: UTC
-    ###<<< General ENV Variables
-
     ###>>> Identity Operations Processor PostgresSQL credentials
     - name: IOP_POSTGRES_HOST
+      ###<<< General ENV Variables
+
       value: saas-dev-euw1-ip-blue-identity-platform-1.c1g4us8m085b.eu-west-1.rds.amazonaws.com
     - name: IOP_POSTGRES_HOST_READER
       value: saas-dev-euw1-ip-blue-identity-platform-2.c1g4us8m085b.eu-west-1.rds.amazonaws.com
@@ -183,10 +177,10 @@ consumer:
       value: ./migrations
     - name: MIGRATIONS_TABLE_NAME
       value: migrations
-    ###<<< Identity Operations Processor PostgresSQL credentials
-
     ###>>> Identity Platform V3 PostgresSQL credentials
     - name: IDENTITY_PLATFORM_V3_POSTGRES_HOST
+      ###<<< Identity Operations Processor PostgresSQL credentials
+
       value: saas-dev-euw1-ip-blue-identity-platform-1.c1g4us8m085b.eu-west-1.rds.amazonaws.com
     - name: IDENTITY_PLATFORM_V3_POSTGRES_USER
       value: postgres
@@ -198,37 +192,37 @@ consumer:
       value: identity_platform
     - name: IDENTITY_PLATFORM_V3_POSTGRES_SSL_MODE
       value: disable
-    ###<<< Identity Platform V3 PostgresSQL credentials
-
     ###>>> NATS
     - name: NATS_HOSTS
-      value: nats://nats.nats.svc.cluster.local:4222
-    ###<<< NATS
+      ###<<< Identity Platform V3 PostgresSQL credentials
 
+      value: nats://nats.nats.svc.cluster.local:4222
     ###>>> REDIS
     - name: REDIS_HOSTS
-      value: redis-master.redis.svc.cluster.local:6379
-    ###<<< REDIS
+      ###<<< NATS
 
+      value: redis-master.redis.svc.cluster.local:6379
     ###>>> OTEL
     - name: OTEL_GRPC_HOST
+      ###<<< REDIS
+
       value: k8s-monitoring-alloy-receiver.monitoring.svc.cluster.local
     - name: OTEL_GRPC_PORT
       value: "4317"
-    ###<<< OTEL
-
     ###>>> Dynamic parameters
     - name: DYNAMIC_PARAMETERS_FILE_PATH
-      value: ./dynamic-parameters.yaml
-    ###<<< Dynamic parameters
+      ###<<< OTEL
 
+      value: ./dynamic-parameters.yaml
     ###>>> Encryption Key Storer
     - name: ENCRYPTION_KEY_STORER_GRPC_SERVER_ADDR
-      value: encryption-key-storer.encryption-key-storer.svc.cluster.local:8086
-    ###<<< Encryption Key Storer
+      ###<<< Dynamic parameters
 
+      value: encryption-key-storer.encryption-key-storer.svc.cluster.local:8086
     ###>>> AWS Generic Related
     - name: OPERATIONS_BUCKET_NAME
+      ###<<< Encryption Key Storer
+
       value: saas-dev-euw1-iop-blue-operations-assets
     - name: SQS_BASE_URL
       value: https://sqs.eu-west-1.amazonaws.com/314146327420/
@@ -236,7 +230,7 @@ consumer:
       value: saas-dev-euw1-iop-blue-async-commands
     - name: TENANT_EVENTS_SQS_QUEUE_NAME
       value: saas-dev-euw1-iop-blue-tenant-events
-    ###<<< AWS Generic Related
+      ###<<< AWS Generic Related
   resources:
     limits:
       cpu: 500m
